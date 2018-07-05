@@ -100,6 +100,35 @@ class Document(dict):
             url_quote(self._document_id, safe='')
         ))
 
+    @staticmethod
+    def _detransform(doc):
+        """
+        Detransform the document.
+
+        This method is executed whenever a document is deserialized into a
+        Python dictionary. It provides an opportunity to manipulate the data
+        returned from the remote server before it gets copied back to the local
+        cache.
+
+        :param doc: The document to be detransformed.
+        :return: The detransformed document.
+        """
+        return doc  # noop
+
+    @staticmethod
+    def _transform(doc):
+        """
+        Transform the document.
+
+        This method is executed whenever a document is serialized into a
+        JSON formatted string. It provides an opportunity to manipulate the data
+        being sent to the remote server.
+
+        :param doc: The document to be transformed.
+        :return: The transformed document.
+        """
+        return doc  # noop
+
     def exists(self):
         """
         Retrieves whether the document exists in the remote database or not.
@@ -124,7 +153,7 @@ class Document(dict):
 
         :returns: Encoded JSON string containing the document data
         """
-        return json.dumps(dict(self), cls=self.encoder)
+        return json.dumps(self._transform(self), cls=self.encoder)
 
     def create(self):
         """
@@ -144,7 +173,7 @@ class Document(dict):
         resp = self.r_session.post(
             self._database.database_url,
             headers=headers,
-            data=json.dumps(doc, cls=self.encoder)
+            data=json.dumps(self._transform(doc), cls=self.encoder)
         )
         resp.raise_for_status()
         data = resp.json()
@@ -165,7 +194,7 @@ class Document(dict):
         resp = self.r_session.get(self.document_url)
         resp.raise_for_status()
         self.clear()
-        self.update(resp.json())
+        self.update(self._detransform(resp.json()))
 
     def save(self):
         """
