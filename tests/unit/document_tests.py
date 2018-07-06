@@ -859,5 +859,41 @@ class DocumentTests(UnitTestDbBase):
         finally:
             self.client.connect()
 
+    def test_document_transform(self):
+
+        class DocWithTransform(Document):
+
+            @staticmethod
+            def _transform(doc):
+                doc['saved_at'] = 123456789
+                return doc
+
+        doc = DocWithTransform(self.db, 'my-transformed-doc')
+        doc.save()
+        doc.fetch()
+
+        self.assertEquals(doc['saved_at'], 123456789)
+
+    def test_document_detransform(self):
+
+        class DocWithDetransform(Document):
+
+            @staticmethod
+            def _detransform(doc):
+                doc['fetched_at'] = 123456789
+                return doc
+
+        doc = DocWithDetransform(self.db, 'my-detransformed-doc')
+        doc.save()
+
+        # Fetch doc without executing the detransform to ensure the additional
+        # 'fetched_at' key/value was not saved to the remote server.
+        raw_doc = self.db.all_docs(include_docs=True)['rows'][0]['doc']
+        self.assertEquals(raw_doc['_id'], 'my-detransformed-doc')
+        self.assertTrue('fetched_at' not in raw_doc)
+
+        doc.fetch()
+        self.assertEquals(doc['fetched_at'], 123456789)
+
 if __name__ == '__main__':
     unittest.main()
