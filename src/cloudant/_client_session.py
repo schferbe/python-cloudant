@@ -159,7 +159,12 @@ class CookieSession(ClientSession):
         """
         Logout cookie based user.
         """
-        resp = super(CookieSession, self).request('DELETE', self._session_url)
+        resp = super(CookieSession, self).request(
+                                                  'DELETE', 
+                                                  self._session_url,
+                                                  data={'name': self._username, 'password': self._password},
+                                                  auth=(self._username, self._password)
+                                                 )
         resp.raise_for_status()
 
     def request(self, method, url, **kwargs):
